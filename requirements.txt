@@ -1,0 +1,9 @@
+numpy>=1.22.0
+matplotlib>=3.5.0
+scipy>=1.8.0
+numba>=0.56.0
+# Dependencias recomendadas para notebooks y visualización
+jupyter>=1.0.0
+ipykernel>=6.0.0
+# Nota: CuPy debe instalarse según la versión de CUDA en Kabré:
+# cupy-cuda11x o cupy-cuda12x
