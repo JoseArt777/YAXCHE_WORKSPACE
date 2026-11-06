@@ -26,7 +26,7 @@ def main():
     print(f"   -> Territorio continental de Guatemala delimitado: {ha_guatemala:,} hectareas.")
 
     print("2. Configurando viento meteorologico NOAA GFS (14 km/h hacia el Noreste)...")
-    wind = WindField.uniform(shape=(rows, cols), speed_ms=4.0, direction_degrees=45.0)
+    wind = WindField.uniform(shape=(rows, cols), speed_ms=4.0, direction_degrees=180.0)
 
     print("3. Inicializando simulador...")
     sim = FireSimulation(terrain=terrain, wind=wind, step_duration_hours=1.0)
@@ -36,10 +36,10 @@ def main():
     print("4. Iniciando focos de ignicion reales:")
     print("   -> Foco 1: Reserva de la Biosfera Maya (Peten: 17.20°N, 90.50°W)")
     print("   -> Foco 2: Cadena Volcanica / Sierra Madre (14.55°N, 91.10°W)")
-    sim.ignite_coord(lon=-90.50, lat=17.20)
+    sim.ignite_coord(lon=-89.0, lat=15.5)
     sim.ignite_coord(lon=-91.10, lat=14.55)
 
-    pasos = 24
+    pasos = 48
     print(f"5. Ejecutando simulacion secuencial de {pasos} horas de propagacion...")
     t0 = time.perf_counter()
     history = sim.run(steps=pasos)
