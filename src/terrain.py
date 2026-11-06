@@ -1,23 +1,66 @@
 """
 YAXCHE - Modulo de Modelado de Terreno y Georreferenciacion Nacional
-Define la topografia, cobertura de combustible y mascara oficial de Guatemala.
-Sistema de Coordenadas: WGS84 (EPSG:4326) / Metrica: 1 celda = 100m x 100m (1 ha).
+Utiliza las coordenadas oficiales de frontera de la Republica de Guatemala (Natural Earth / WGS84).
+Metrica: 1 celda = 100m x 100m (1 ha).
 """
 
+import json
+import os
 import numpy as np
 from matplotlib.path import Path
 
 
+# Coordenadas oficiales de frontera de la Republica de Guatemala (WGS84)
+# Extraidas del estandar cartografico internacional Natural Earth (GTM)
+OFFICIAL_GUATEMALA_BORDER = [
+    (-90.095555, 13.735338),
+    (-90.608624, 13.909771),
+    (-91.232410, 13.927832),
+    (-91.689747, 14.126218),
+    (-92.227750, 14.538829),
+    (-92.203230, 14.830103),
+    (-92.087216, 15.064585),
+    (-92.229249, 15.251447),
+    (-91.747960, 16.066565),
+    (-90.464473, 16.069562),
+    (-90.438867, 16.410110),
+    (-90.600847, 16.470778),
+    (-90.711822, 16.687483),
+    (-91.081670, 16.918477),
+    (-91.453921, 17.252177),
+    (-91.002269, 17.254658),
+    (-91.001520, 17.817595),
+    (-90.067934, 17.819326),
+    (-89.143080, 17.808319),
+    (-89.150806, 17.015577),
+    (-89.229122, 15.886938),
+    (-88.930613, 15.887273),
+    (-88.604586, 15.706380),
+    (-88.518364, 15.855389),
+    (-88.225023, 15.727722),
+    (-88.680680, 15.346247),
+    (-89.154811, 15.066419),
+    (-89.225220, 14.874286),
+    (-89.145535, 14.678019),
+    (-89.353326, 14.424133),
+    (-89.587343, 14.362586),
+    (-89.534219, 14.244816),
+    (-89.721934, 14.134228),
+    (-90.064678, 13.881970),
+    (-90.095555, 13.735338),
+]
+
+
 class TerrainGrid:
     """
-    Malla espacial georreferenciada del territorio de Guatemala.
+    Malla espacial georreferenciada con la frontera oficial de Guatemala.
     """
 
-    # Bounding Box oficial de la Republica de Guatemala en grados decimales
-    LON_MIN = -92.25
-    LON_MAX = -88.22
-    LAT_MIN = 13.73
-    LAT_MAX = 17.82
+    # Bounding Box con margen geografico para visualizacion contextual
+    LON_MIN = -92.50
+    LON_MAX = -88.00
+    LAT_MIN = 13.50
+    LAT_MAX = 18.00
 
     def __init__(
         self,
@@ -28,14 +71,6 @@ class TerrainGrid:
         lat_coords: np.ndarray,
         cell_size_meters: float = 100.0,
     ):
-        """
-        :param elevation: Matriz 2D de elevacion en metros s.n.m.
-        :param fuel: Matriz 2D de densidad de combustible [0.0 - 1.0].
-        :param mask_guatemala: Matriz booleana (True dentro de Guatemala, False fuera).
-        :param lon_coords: Vector 1D de longitudes en grados decimales (°W).
-        :param lat_coords: Vector 1D de latitudes en grados decimales (°N).
-        :param cell_size_meters: Resolucion espacial de cada celda en metros.
-        """
         self.elevation = elevation.astype(np.float32)
         self.fuel = fuel.astype(np.float32)
         self.mask_guatemala = mask_guatemala.astype(bool)
@@ -43,112 +78,75 @@ class TerrainGrid:
         self.lat_coords = lat_coords.astype(np.float32)
         self.cell_size = float(cell_size_meters)
         self.rows, self.cols = elevation.shape
+        self.border_coords = OFFICIAL_GUATEMALA_BORDER
 
-        # Gradientes de pendiente en metros por metro
+        # Gradientes de pendiente
         self.slope_y, self.slope_x = np.gradient(self.elevation, self.cell_size)
 
     @classmethod
     def create_guatemala_domain(cls, rows: int = 400, cols: int = 400) -> "TerrainGrid":
         """
-        Genera el dominio territorial georreferenciado con la silueta y orografia oficial de Guatemala:
-        - Rectangulo de Peten y Tierras Bajas del Norte (0 a 300 m s.n.m.)
-        - Cadena Volcanica de la Sierra Madre y Cuchumatanes (1500 a 4200 m s.n.m.)
-        - Depresion del Rio Motagua y Lago de Izabal
-        - Planicie costera hacia el Oceano Pacifico
+        Genera el dominio territorial oficial de Guatemala sobre la malla WGS84.
         """
         lon = np.linspace(cls.LON_MIN, cls.LON_MAX, cols)
-        lat = np.linspace(cls.LAT_MAX, cls.LAT_MIN, rows)  # De norte a sur (fila 0 = norte)
+        lat = np.linspace(cls.LAT_MAX, cls.LAT_MIN, rows)  # De norte a sur
         LON, LAT = np.meshgrid(lon, lat)
 
-        # -------------------------------------------------------------
-        # Poligono vectorial simplificado de la frontera de Guatemala
-        # (Vertices reales en WGS84)
-        # -------------------------------------------------------------
-        guatemala_polygon_coords = [
-            (-90.99, 17.82),  # Vertice Noroeste de Peten (Frontera con Mexico)
-            (-89.15, 17.82),  # Vertice Noreste de Peten (Frontera con Mexico y Belice)
-            (-89.15, 15.89),  # Frontera Belice con Rio Sarstun
-            (-88.60, 15.75),  # Bahia de Amatique / Puerto Barrios (Caribe)
-            (-88.22, 15.35),  # Frontera con Honduras
-            (-89.15, 14.45),  # Vertice Trifinio (Guatemala - Honduras - El Salvador)
-            (-90.13, 13.74),  # Frontera El Salvador / Costa Pacifico (Ciudad Pedro de Alvarado)
-            (-90.80, 13.92),  # Costa Pacifico (Puerto San Jose)
-            (-91.50, 14.15),  # Costa Pacifico (Champerico)
-            (-92.20, 14.51),  # Vertice Suroeste Pacifico / Mexico (Ocos)
-            (-92.10, 15.15),  # Frontera Mexico / San Marcos (Volcan Tajumulco)
-            (-91.80, 15.85),  # Frontera Mexico / Huehuetenango
-            (-91.00, 16.50),  # Vertice Rio Usumacinta
-            (-90.99, 17.20),  # Limite occidental de Peten
-            (-90.99, 17.82),  # Cierre del poligono en el norte
-        ]
-
-        poly_path = Path(guatemala_polygon_coords)
+        # Mascara exacta del poligono oficial
+        poly_path = Path(OFFICIAL_GUATEMALA_BORDER)
         points = np.vstack((LON.flatten(), LAT.flatten())).T
         mask_guatemala = poly_path.contains_points(points).reshape((rows, cols))
 
         # -------------------------------------------------------------
-        # Altimetria realista de Guatemala (Relieve Continental)
+        # Relieve Topografico Georreferenciado
         # -------------------------------------------------------------
-        # 1. Base topografica: gradiente sur a norte
-        # Costa Pacifico (14.0° N) = 0m -> Planicie costera
-        # Cadena volcanica paralela a la costa (14.4° - 14.9° N) = 2,500m - 4,200m
-        # Altiplano y Cuchumatanes (15.0° - 15.8° N) = 2,000m - 3,800m
-        # Valles del Motagua e Izabal (15.2° - 15.6° N, Lon -89.5°) = 100m - 400m
-        # Tierras bajas de Peten (16.0° - 17.8° N) = 80m - 300m
-
         elevation = np.zeros((rows, cols), dtype=np.float32)
 
-        # Planicie de Peten (Norte)
-        peten_zone = (LAT >= 16.0)
-        elevation[peten_zone] = 120.0 + 80.0 * np.sin(12 * LON[peten_zone]) * np.cos(10 * LAT[peten_zone])
+        # 1. Tierras Bajas de Peten (Norte: Lat > 16.0)
+        peten = (LAT >= 16.0)
+        elevation[peten] = 120.0 + 60.0 * np.sin(10 * LON[peten]) * np.cos(8 * LAT[peten])
 
-        # Cadena Volcanica de la Sierra Madre (Sur-Centro)
-        volcanic_axis = 14.65 - 0.22 * (LON - (-91.0))
-        dist_volcanic = np.abs(LAT - volcanic_axis)
-        ridge_volcanes = 3200.0 * np.exp(-(dist_volcanic**2) / (2 * 0.16**2))
+        # 2. Cadena Volcanica de la Sierra Madre (Sur: Lat 14.3 a 15.0)
+        # Eje volcanico orientado NO-SE
+        volc_center = 14.50 - 0.25 * (LON - (-91.0))
+        dist_volc = np.abs(LAT - volc_center)
+        volc_ridge = 3200.0 * np.exp(-(dist_volc**2) / (2 * 0.18**2))
 
-        # Picos volcanicos prominentes
-        tajumulco = 1000.0 * np.exp(-(((LON - (-91.90)) ** 2 + (LAT - 15.04) ** 2) / 0.015))
-        fuego_acatenango = 800.0 * np.exp(-(((LON - (-90.88)) ** 2 + (LAT - 14.47) ** 2) / 0.012))
-        agua = 600.0 * np.exp(-(((LON - (-90.74)) ** 2 + (LAT - 14.46) ** 2) / 0.010))
+        # Picos volcanicos destacados
+        tajumulco = 1000.0 * np.exp(-(((LON - (-91.90)) ** 2 + (LAT - 15.04) ** 2) / 0.02))
+        fuego_acatenango = 800.0 * np.exp(-(((LON - (-90.88)) ** 2 + (LAT - 14.47) ** 2) / 0.015))
+        agua = 600.0 * np.exp(-(((LON - (-90.74)) ** 2 + (LAT - 14.46) ** 2) / 0.012))
 
-        # Sierra de los Cuchumatanes (Noroeste)
-        cuchumatanes = 2600.0 * np.exp(-(((LON - (-91.50)) ** 2 + (LAT - 15.55) ** 2) / 0.08))
+        # 3. Sierra de los Cuchumatanes (Huehuetenango: Lat 15.5, Lon -91.5)
+        cuchumatanes = 2800.0 * np.exp(-(((LON - (-91.50)) ** 2 + (LAT - 15.55) ** 2) / 0.07))
 
-        # Depresion del Valle del Motagua (Valle seco central-este)
-        motagua_axis = 15.0 + 0.35 * (LON - (-90.0))
-        motagua_trough = 800.0 * np.exp(-((LAT - motagua_axis) ** 2) / 0.04) * (LON > -90.5)
+        # 4. Valle del Rio Motagua
+        motagua_axis = 14.9 + 0.35 * (LON - (-90.0))
+        motagua_trough = 700.0 * np.exp(-((LAT - motagua_axis) ** 2) / 0.05) * (LON > -90.5)
 
-        # Planicie costera del Pacifico (disminuye hacia el oceano en Lat < 14.2)
-        elevation_montanias = ridge_volcanes + tajumulco + fuego_acatenango + agua + cuchumatanes - motagua_trough
-        elevation_montanias = np.maximum(elevation_montanias, 50.0)
+        elevation_montanias = volc_ridge + tajumulco + fuego_acatenango + agua + cuchumatanes - motagua_trough
+        elevation_montanias = np.maximum(elevation_montanias, 80.0)
 
-        elevation[~peten_zone] = elevation_montanias[~peten_zone]
+        elevation[~peten] = elevation_montanias[~peten]
 
-        # Gradiente costero hacia el sur
-        pacific_drop = np.clip((LAT - 13.9) / 0.45, 0.0, 1.0)
-        elevation = elevation * pacific_drop
+        # Caida hacia el Pacifico (Lat < 14.1)
+        pacific_slope = np.clip((LAT - 13.8) / 0.35, 0.0, 1.0)
+        elevation = elevation * pacific_slope
 
         # -------------------------------------------------------------
-        # Cobertura de Combustible Forestal (Biomasa NDVI)
+        # Cobertura de Combustible Forestal (NDVI)
         # -------------------------------------------------------------
         fuel = np.zeros((rows, cols), dtype=np.float32)
+        # Peten: Selva tropical de alta densidad (0.85 - 0.95)
+        fuel[peten] = 0.90
+        # Altiplano: Bosque mixto y coniferas (0.65 - 0.75)
+        fuel[(~peten) & (elevation > 1400)] = 0.70
+        # Costa y valles agricolas (0.40)
+        fuel[(~peten) & (elevation <= 1400)] = 0.40
+        # Picos volcanicos rocosos
+        fuel[elevation > 3700] = 0.05
 
-        # Peten / Reserva de la Biosfera Maya: Bosque tropical denso (0.80 - 0.95)
-        fuel[peten_zone] = 0.88 + 0.06 * np.cos(8 * LON[peten_zone])
-
-        # Bosque de montania y coniferas en altiplano (0.60 - 0.75)
-        altiplano = (~peten_zone) & (elevation > 1500)
-        fuel[altiplano] = 0.70
-
-        # Valles y costa: sabana y tierras agricolas (0.35 - 0.50)
-        valles_costa = (~peten_zone) & (elevation <= 1500)
-        fuel[valles_costa] = 0.42
-
-        # Picos volcanicos rocosos sobre 3,600m: sin vegetacion
-        fuel[elevation > 3600] = 0.05
-
-        # Cero combustible y elevacion nula fuera de las fronteras soberanas de Guatemala
+        # Restringir estrictamente al territorio soberano
         elevation[~mask_guatemala] = 0.0
         fuel[~mask_guatemala] = 0.0
 
