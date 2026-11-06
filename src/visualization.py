@@ -1,5 +1,5 @@
 """
-JURAKAN - Módulo de Visualización Cartográfica y Térmica
+YAXCHÉ - Módulo de Visualización Cartográfica y Térmica
 """
 
 import matplotlib.pyplot as plt
@@ -7,7 +7,7 @@ import numpy as np
 from src.simulation import FireSimulation, STATE_BURNING, STATE_BURNED
 
 
-def plot_simulation_state(sim: FireSimulation, title: str = "JURAKAN - Simulación de Frentes de Fuego", save_path: str = None):
+def plot_simulation_state(sim: FireSimulation, title: str = "YAXCHÉ - Simulación de Frentes de Fuego en Guatemala", save_path: str = None):
     """
     Renderiza el mapa de elevación del terreno junto con el frente térmico activo y zonas quemadas.
     """
@@ -55,6 +55,7 @@ def plot_simulation_state(sim: FireSimulation, title: str = "JURAKAN - Simulaci�
 
     if save_path:
         plt.savefig(save_path, bbox_inches="tight")
-        print(f"[JURAKAN] Figura guardada con éxito en: {save_path}")
+        print(f"[YAXCHÉ] Figura guardada con éxito en: {save_path}")
 
     return fig, ax
+

@@ -1,5 +1,5 @@
 """
-JURAKAN - Motor de Simulación Celular 2D de Propagación de Frentes de Fuego
+YAXCHÉ - Motor de Simulación Celular 2D de Propagación de Frentes de Fuego
 """
 
 import time
@@ -125,24 +125,33 @@ class FireSimulation:
         return history
 
 
-def run_benchmark(sizes: list[int] = [100, 250, 500], steps_per_size: int = 5):
+def run_benchmark(sizes: list[int] = [200, 500, 1000], steps_per_size: int = 10):
     """
     Ejecuta un benchmark del baseline para documentar tiempos iniciales antes del taller.
+    Evalúa múltiples focos de ignición sobre mallas de alta resolución.
     """
-    print("=" * 65)
-    print(" JURAKAN: Benchmark Inicial de Propagación en CPU Secuencial")
-    print("=" * 65)
-    print(f"{'Malla (Filas x Cols)':<25} | {'Celdas':<12} | {'Tiempo Total (s)':<18} | {'s / paso':<10}")
-    print("-" * 65)
+    print("=" * 75)
+    print(" 🌳🔥 YAXCHÉ: Benchmark de Estrés en CPU Secuencial (Python Puro)")
+    print("=" * 75)
+    print(f"{'Malla (Filas x Cols)':<22} | {'Celdas':<12} | {'Memoria Est.':<14} | {'Tiempo (s)':<12} | {'s / paso':<10}")
+    print("-" * 75)
 
     results = []
     for s in sizes:
+        # Estimación de memoria de matrices principales (elevation, fuel, state, burn_time, wind)
+        # ~6 matrices de float32 / int32 (4 bytes cada una)
+        est_mb = (s * s * 4 * 6) / (1024 * 1024)
+
+        t_gen0 = time.perf_counter()
         terrain = TerrainGrid.create_synthetic_guatemala(rows=s, cols=s)
-        wind = WindField.uniform(shape=(s, s), speed_ms=10.0, direction_degrees=45.0)
+        wind = WindField.uniform(shape=(s, s), speed_ms=12.0, direction_degrees=45.0)
         sim = FireSimulation(terrain, wind)
 
-        # Iniciar foco en el centro
-        sim.ignite(s // 2, s // 2)
+        # Iniciar 4 focos simultáneos (Petén, Altiplano, Oriente, Costa)
+        sim.ignite(int(s * 0.8), int(s * 0.5))
+        sim.ignite(int(s * 0.35), int(s * 0.45))
+        sim.ignite(int(s * 0.5), int(s * 0.7))
+        sim.ignite(int(s * 0.2), int(s * 0.2))
 
         t0 = time.perf_counter()
         sim.run(steps=steps_per_size)
@@ -150,12 +159,18 @@ def run_benchmark(sizes: list[int] = [100, 250, 500], steps_per_size: int = 5):
 
         total_cells = s * s
         s_per_step = elapsed / steps_per_size
-        print(f"{f'{s} x {s}':<25} | {total_cells:<12,d} | {elapsed:<18.4f} | {s_per_step:<10.4f}")
-        results.append((s, total_cells, elapsed, s_per_step))
+        print(f"{f'{s} x {s}':<22} | {total_cells:<12,d} | {f'{est_mb:.1f} MB':<14} | {elapsed:<12.4f} | {s_per_step:<10.4f}")
+        results.append((s, total_cells, est_mb, elapsed, s_per_step))
 
-    print("=" * 65)
+    print("=" * 75)
+    print("💡 Observación para Kabré:")
+    print("   A 1 millón de celdas (1000x1000), el cuello de botella de los bucles 'for'")
+    print("   en CPU monohilo se hace evidente. Con Numba y CUDA en Kabré, este tiempo")
+    print("   se reducirá en órdenes de magnitud (10x a 50x de aceleración).")
+    print("=" * 75)
     return results
 
 
 if __name__ == "__main__":
-    run_benchmark(sizes=[100, 200, 300], steps_per_size=5)
+    run_benchmark(sizes=[200, 500, 1000], steps_per_size=10)
+

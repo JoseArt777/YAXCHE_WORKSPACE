@@ -1,6 +1,7 @@
+#!/usr/bin/env python3
 """
-JURAKAN - Script de Demostración Rápida y Generación de Imagen
-Ejecútalo con: python3 run_demo.py
+YAXCHÉ - Script de Demostración Rápida y Generación de Imagen
+Ejecútalo con: python3 run_demo.py o ./run_demo.py
 """
 
 import time
@@ -13,7 +14,7 @@ from src.visualization import plot_simulation_state
 
 def main():
     print("=" * 60)
-    print("🌪️🔥 JURAKAN: Iniciando Simulación de Demostración")
+    print("🌳🔥 YAXCHÉ: Iniciando Simulación de Demostración")
     print("=" * 60)
 
     filas, cols = 300, 300
@@ -40,7 +41,7 @@ def main():
     # Guardar mapa en imagen PNG
     output_img = "fuego_guatemala.png"
     print(f"5. Generando visualización y guardando en '{output_img}'...")
-    plot_simulation_state(sim, title="JURAKAN - Simulación de Frentes de Fuego en Guatemala", save_path=output_img)
+    plot_simulation_state(sim, title="YAXCHÉ - Simulación de Frentes de Fuego en Guatemala", save_path=output_img)
 
     print("=" * 60)
     print(f"✅ ¡Demostración finalizada! Revisa la imagen generada: {os.path.abspath(output_img)}")

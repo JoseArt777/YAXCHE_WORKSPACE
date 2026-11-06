@@ -1,5 +1,5 @@
-# JURAKAN 🌪️🔥
-**Simulador Espacio-Temporal y Acelerado por GPU para la Propagación de Incendios Forestales en Guatemala**
+# YAXCHÉ 🌳🔥
+**Simulador Espacio-Temporal y Acelerado por GPU para la Protección y Propagación de Incendios Forestales en Guatemala**
 
 [![HPC: Kabré Cluster](https://img.shields.io/badge/HPC-Kabré%20(CeNAT)-blue.svg)](#)
 [![Python: 3.10+](https://img.shields.io/badge/Python-3.10%2B-green.svg)](#)
@@ -10,15 +10,15 @@
 
 ## 🏛️ Origen e Identidad
 
-En la cosmovisión maya narrada en el **Popol Vuh**, ***Jun Raqan* (Jurakan, "el de una sola pierna" o "Corazón del Cielo")** es la deidad suprema que rige los vientos tempestuosos, las tormentas, el relámpago y el fuego primordial. 
+En la cosmovisión maya de Mesoamérica, la **Yaxché (la Ceiba Pentandra)** es el *Árbol de la Vida* y el *Axis Mundi* (el eje sagrado del cosmos). Sus ramas superiores se elevan hacia el cielo estrellado, su tronco sostiene la superficie viva y sus raíces descienden a la profundidad de la tierra. La Ceiba es, además, el **Árbol Nacional de Guatemala**, símbolo patrio de longevidad, grandeza y resistencia.
 
-En la dinámica real de los incendios forestales en Guatemala, **el viento y las corrientes atmosféricas son el factor crítico que aviva, orienta y descontrola los frentes de fuego**. **JURAKAN** nace con la misión de modelar y anticipar la interacción entre el viento, la topografía montañosa y la biomasa forestal del territorio guatemalteco mediante computación de alto rendimiento (HPC).
+**YAXCHÉ** nace con la misión de emular ese puente cósmico: **captar los datos que descienden desde las alturas del cielo (los sensores satelitales de la NASA), procesarlos a través del clúster de supercómputo Kabré, y aterrizarlos en la masa forestal de Guatemala** para anticipar el avance de frentes de fuego y salvaguardar el pulmón verde de Centroamérica.
 
 ---
 
 ## 🌋 El Problema
 
-Cada temporada seca (febrero a junio), Guatemala sufre la destrucción de miles de hectáreas en áreas de altísimo valor ecológico como la **Reserva de la Biosfera Maya (RBM)** en Petén y los bosques de coníferas del altiplano central.
+Cada temporada seca (febrero a junio), Guatemala sufre la destrucción de miles de hectáreas en áreas de altísimo valor ecológico como la **Reserva de la Biosfera Maya (RBM)** en Petén y los bosques montañosos del altiplano central.
 
 ### Brecha en las herramientas actuales:
 1. **Modelos Reactivos:** Las alertas satelitales institucionales notifican puntos de calor **horas después** de que la ignición ha tenido lugar.
@@ -29,7 +29,7 @@ Cada temporada seca (febrero a junio), Guatemala sufre la destrucción de miles 
 
 ## 🛰️ Arquitectura de la Solución
 
-JURAKAN implementa un pipeline científico de simulación física acoplado a datos de observación de la Tierra:
+YAXCHÉ implementa un pipeline científico de simulación física acoplado a datos de observación de la Tierra:
 
 ```
                     FUENTES DE DATOS ABIERTAS
@@ -67,7 +67,7 @@ JURAKAN implementa un pipeline científico de simulación física acoplado a dat
 
 ## ⚡ El Rol del Supercomputador Kabré (CeNAT)
 
-JURAKAN ha sido diseñado específicamente para aprovechar las capacidades del clúster **Kabré**:
+YAXCHÉ ha sido diseñado específicamente para aprovechar las capacidades del clúster **Kabré**:
 
 1. **Paralelismo en Nodo (CPU):**
    * Eliminación de bucles lentos en Python mediante compilación Just-in-Time (`@numba.jit`).
@@ -83,7 +83,7 @@ JURAKAN ha sido diseñado específicamente para aprovechar las capacidades del c
 ## 📁 Estructura del Repositorio
 
 ```text
-JURAKAN/
+YAXCHE/
 │
 ├── data/
 │   ├── raw/                 # Datos satelitales crudos (GeoTIFF, NetCDF)
@@ -102,6 +102,7 @@ JURAKAN/
 ├── tests/
 │   └── test_simulation.py   # Pruebas de integración matemática
 │
+├── run_demo.py              # Demostración rápida y generación de imágenes
 ├── requirements.txt         # Dependencias del proyecto
 └── README.md                # Documentación del proyecto
 ```
@@ -112,18 +113,22 @@ JURAKAN/
 
 ### 1. Clonar el repositorio
 ```bash
-git clone https://github.com/<tu-usuario>/JURAKAN.git
-cd JURAKAN
+git clone https://github.com/<tu-usuario>/YAXCHE.git
+cd YAXCHE
 ```
 
-### 2. Instalar dependencias
+### 2. Activar entorno virtual e instalar dependencias
 ```bash
-python3 -m venv venv
-source venv/bin/activate
+source ../.venv/bin/activate
 pip install -r requirements.txt
 ```
 
 ### 3. Ejecutar la simulación base
+```bash
+python3 run_demo.py
+```
+
+O para ver la tabla de benchmark en CPU:
 ```bash
 python3 -m src.simulation
 ```
@@ -135,5 +140,5 @@ jupyter notebook notebooks/01_baseline_simulacion.ipynb
 
 ---
 
-## 📜 Licencia y Citación
+## 📜 Licencia y Reconocimientos
 Desarrollado como proyecto de investigación aplicada en Computación de Alto Rendimiento (HPC) en colaboración académica con el **I Taller de HPC en CPU y GPU con Python (CeNAT / Kabré)**.

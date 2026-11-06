@@ -1,5 +1,5 @@
 """
-JURAKAN - Módulo de Modelado de Terreno y Combustible Forestal
+YAXCHÉ - Módulo de Modelado de Terreno y Combustible Forestal
 """
 
 import numpy as np
@@ -63,3 +63,4 @@ class TerrainGrid:
         fuel = np.clip(fuel, 0.05, 0.95)
 
         return cls(elevation=elevation, fuel=fuel, cell_size_meters=cell_size_meters)
+

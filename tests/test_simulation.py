@@ -1,5 +1,5 @@
 """
-Pruebas de integración del motor de simulación JURAKAN
+Pruebas de integración del motor de simulación YAXCHÉ
 """
 
 import numpy as np
@@ -33,3 +33,4 @@ def test_simulation_step():
     history = sim.run(steps=3)
     assert len(history) == 3
     assert sim.current_step == 3
+

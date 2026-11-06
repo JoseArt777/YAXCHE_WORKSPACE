@@ -1,5 +1,5 @@
 """
-JURAKAN - Módulo de Dinámica de Viento y Factores Atmosféricos
+YAXCHÉ - Módulo de Dinámica de Viento y Factores Atmosféricos
 """
 
 import numpy as np
@@ -37,3 +37,4 @@ class WindField:
         u = np.full(shape, u_val, dtype=np.float32)
         v = np.full(shape, v_val, dtype=np.float32)
         return cls(u=u, v=v)
+

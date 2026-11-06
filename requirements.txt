@@ -7,3 +7,4 @@ jupyter>=1.0.0
 ipykernel>=6.0.0
 # Nota: CuPy debe instalarse según la versión de CUDA en Kabré:
 # cupy-cuda11x o cupy-cuda12x
+
