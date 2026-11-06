@@ -131,7 +131,7 @@ def run_benchmark(sizes: list[int] = [200, 500, 1000], steps_per_size: int = 10)
     Evalúa múltiples focos de ignición sobre mallas de alta resolución.
     """
     print("=" * 75)
-    print(" 🌳🔥 YAXCHÉ: Benchmark de Estrés en CPU Secuencial (Python Puro)")
+    print(" YAXCHÉ: Benchmark de Estrés en CPU Secuencial (Python Puro)")
     print("=" * 75)
     print(f"{'Malla (Filas x Cols)':<22} | {'Celdas':<12} | {'Memoria Est.':<14} | {'Tiempo (s)':<12} | {'s / paso':<10}")
     print("-" * 75)
@@ -163,7 +163,7 @@ def run_benchmark(sizes: list[int] = [200, 500, 1000], steps_per_size: int = 10)
         results.append((s, total_cells, est_mb, elapsed, s_per_step))
 
     print("=" * 75)
-    print("💡 Observación para Kabré:")
+    print("Nota para Kabre:")
     print("   A 1 millón de celdas (1000x1000), el cuello de botella de los bucles 'for'")
     print("   en CPU monohilo se hace evidente. Con Numba y CUDA en Kabré, este tiempo")
     print("   se reducirá en órdenes de magnitud (10x a 50x de aceleración).")

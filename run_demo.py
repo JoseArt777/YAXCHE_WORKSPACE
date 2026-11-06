@@ -14,7 +14,7 @@ from src.visualization import plot_simulation_state
 
 def main():
     print("=" * 60)
-    print("🌳🔥 YAXCHÉ: Iniciando Simulación de Demostración")
+    print("YAXCHÉ: Iniciando Simulación de Demostración")
     print("=" * 60)
 
     filas, cols = 300, 300
@@ -44,7 +44,7 @@ def main():
     plot_simulation_state(sim, title="YAXCHÉ - Simulación de Frentes de Fuego en Guatemala", save_path=output_img)
 
     print("=" * 60)
-    print(f"✅ ¡Demostración finalizada! Revisa la imagen generada: {os.path.abspath(output_img)}")
+    print(f"[OK] Demostración finalizada. Imagen generada: {os.path.abspath(output_img)}")
     print("=" * 60)
 
 

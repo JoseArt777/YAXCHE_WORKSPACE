@@ -1,4 +1,4 @@
-# YAXCHÉ 🌳🔥
+# YAXCHÉ
 **Simulador Espacio-Temporal y Acelerado por GPU para la Protección y Propagación de Incendios Forestales en Guatemala**
 
 [![HPC: Kabré Cluster](https://img.shields.io/badge/HPC-Kabré%20(CeNAT)-blue.svg)](#)
@@ -8,7 +8,7 @@
 
 ---
 
-## 🏛️ Origen e Identidad
+## 1. Origen e Identidad
 
 En la cosmovisión maya de Mesoamérica, la **Yaxché (la Ceiba Pentandra)** es el *Árbol de la Vida* y el *Axis Mundi* (el eje sagrado del cosmos). Sus ramas superiores se elevan hacia el cielo estrellado, su tronco sostiene la superficie viva y sus raíces descienden a la profundidad de la tierra. La Ceiba es, además, el **Árbol Nacional de Guatemala**, símbolo patrio de longevidad, grandeza y resistencia.
 
@@ -16,7 +16,7 @@ En la cosmovisión maya de Mesoamérica, la **Yaxché (la Ceiba Pentandra)** es 
 
 ---
 
-## 🌋 El Problema
+## 2. Planteamiento del Problema
 
 Cada temporada seca (febrero a junio), Guatemala sufre la destrucción de miles de hectáreas en áreas de altísimo valor ecológico como la **Reserva de la Biosfera Maya (RBM)** en Petén y los bosques montañosos del altiplano central.
 
@@ -27,7 +27,7 @@ Cada temporada seca (febrero a junio), Guatemala sufre la destrucción de miles 
 
 ---
 
-## 🛰️ Arquitectura de la Solución
+## 3. Arquitectura de la Solución
 
 YAXCHÉ implementa un pipeline científico de simulación física acoplado a datos de observación de la Tierra:
 
@@ -65,7 +65,7 @@ YAXCHÉ implementa un pipeline científico de simulación física acoplado a dat
 
 ---
 
-## ⚡ El Rol del Supercomputador Kabré (CeNAT)
+## 4. El Rol del Supercomputador Kabré (CeNAT)
 
 YAXCHÉ ha sido diseñado específicamente para aprovechar las capacidades del clúster **Kabré**:
 
@@ -80,7 +80,7 @@ YAXCHÉ ha sido diseñado específicamente para aprovechar las capacidades del c
 
 ---
 
-## 📁 Estructura del Repositorio
+## 5. Estructura del Repositorio
 
 ```text
 YAXCHE/
@@ -109,12 +109,12 @@ YAXCHE/
 
 ---
 
-## 🚀 Inicio Rápido (Entorno Local)
+## 6. Inicio Rápido (Entorno Local)
 
 ### 1. Clonar el repositorio
 ```bash
-git clone https://github.com/<tu-usuario>/YAXCHE.git
-cd YAXCHE
+git clone https://github.com/JoseArt777/YAXCHE_WORKSPACE.git
+cd YAXCHE_WORKSPACE
 ```
 
 ### 2. Activar entorno virtual e instalar dependencias
@@ -140,5 +140,5 @@ jupyter notebook notebooks/01_baseline_simulacion.ipynb
 
 ---
 
-## 📜 Licencia y Reconocimientos
+## 7. Licencia y Reconocimientos
 Desarrollado como proyecto de investigación aplicada en Computación de Alto Rendimiento (HPC) en colaboración académica con el **I Taller de HPC en CPU y GPU con Python (CeNAT / Kabré)**.
