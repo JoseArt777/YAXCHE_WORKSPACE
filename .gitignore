@@ -13,9 +13,11 @@ ENV/
 .ipynb_checkpoints
 */.ipynb_checkpoints/*
 
-# Data (grandes archivos satelitales)
+# Data (grandes archivos satelitales raster)
 data/raw/*
 !data/raw/.gitkeep
+!data/raw/*.csv
+!data/raw/*.geojson
 data/processed/*.tif
 data/processed/*.nc
 *.geotiff
