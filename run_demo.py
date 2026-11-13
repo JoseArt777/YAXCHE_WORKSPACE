@@ -17,16 +17,23 @@ def main():
     print(" YAXCHÉ: Iniciando Simulacion Estandar de Incendios en Guatemala")
     print("=" * 70)
 
-    rows, cols = 350, 350
-    print(f"1. Generando dominio georreferenciado WGS84 ({rows} x {cols} = {rows*cols:,} celdas)...")
-    print(f"   -> Escala metrica: 1 celda = 100m x 100m = 1 hectarea.")
-    terrain = TerrainGrid.create_guatemala_domain(rows=rows, cols=cols)
+    real_npz = "data/processed/guatemala_real.npz"
+    if os.path.exists(real_npz):
+        print(f"1. Cargando dataset real de Guatemala desde '{real_npz}'...")
+        terrain = TerrainGrid.from_npz(real_npz)
+        wind = WindField.from_npz(real_npz)
+        print(f"   -> Malla real WGS84 ({terrain.rows} x {terrain.cols} = {terrain.rows * terrain.cols:,} celdas).")
+        print(f"   -> Resolucion aproximada por celda: {terrain.cell_size:.1f} m.")
+    else:
+        rows, cols = 350, 350
+        print(f"1. Generando dominio georreferenciado WGS84 ({rows} x {cols} = {rows*cols:,} celdas)...")
+        print("   -> Escala metrica: 1 celda = 100m x 100m = 1 hectarea.")
+        terrain = TerrainGrid.create_guatemala_domain(rows=rows, cols=cols)
+        wind = WindField.uniform(shape=(rows, cols), speed_ms=4.0, direction_degrees=180.0)
 
     ha_guatemala = int(terrain.mask_guatemala.sum())
-    print(f"   -> Territorio continental de Guatemala delimitado: {ha_guatemala:,} hectareas.")
-
-    print("2. Configurando viento meteorologico NOAA GFS (14 km/h hacia el Noreste)...")
-    wind = WindField.uniform(shape=(rows, cols), speed_ms=4.0, direction_degrees=180.0)
+    print(f"   -> Territorio continental de Guatemala delimitado: {ha_guatemala:,} celdas.")
+    print(f"2. Campo de viento activo (velocidad media: {float(wind.speed.mean()) * 3.6:.1f} km/h)...")
 
     print("3. Inicializando simulador...")
     sim = FireSimulation(terrain=terrain, wind=wind, step_duration_hours=1.0)

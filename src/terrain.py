@@ -159,6 +159,19 @@ class TerrainGrid:
             cell_size_meters=100.0,
         )
 
+    @classmethod
+    def from_npz(cls, path: str) -> "TerrainGrid":
+        """Carga una malla territorial real previamente empaquetada en formato .npz."""
+        data = np.load(path)
+        return cls(
+            elevation=data["elevation"],
+            fuel=data["fuel"],
+            mask_guatemala=data["mask_guatemala"],
+            lon_coords=data["lon_coords"],
+            lat_coords=data["lat_coords"],
+            cell_size_meters=float(data["cell_size_meters"]),
+        )
+
     def coord_to_indices(self, lon: float, lat: float) -> tuple[int, int]:
         """Convierte coordenadas geograficas (Lon, Lat) a indices de matriz (fila, columna)."""
         col = int(np.interp(lon, [self.LON_MIN, self.LON_MAX], [0, self.cols - 1]))

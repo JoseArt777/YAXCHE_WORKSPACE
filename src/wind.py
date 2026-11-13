@@ -38,3 +38,9 @@ class WindField:
         v = np.full(shape, v_val, dtype=np.float32)
         return cls(u=u, v=v)
 
+    @classmethod
+    def from_npz(cls, path: str) -> "WindField":
+        """Carga el campo vectorial de viento real (u, v) desde un archivo .npz."""
+        data = np.load(path)
+        return cls(u=data["wind_u"], v=data["wind_v"])
+
