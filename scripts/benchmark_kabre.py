@@ -6,6 +6,7 @@ siguiendo las convenciones de course_hpc.measure.
 """
 
 import argparse
+import csv
 import json
 import os
 import socket
@@ -52,13 +53,63 @@ def append_record(out_path: str, record: dict) -> None:
         f.write(json.dumps(record) + "\n")
 
 
+def load_firms_hotspots(
+    csv_path: str,
+    target_date: str = "2024-04-18",
+    min_frp: float = 55.0,
+    min_sep_deg: float = 0.18,
+    max_points: int = 24,
+) -> list[tuple[float, float, float, str]]:
+    """Carga focos reales de calor NASA FIRMS VIIRS filtrados y espaciados."""
+    if not os.path.exists(csv_path):
+        return [
+            (-90.50, 17.20, 80.0, "Peten RBM"),
+            (-91.10, 14.55, 75.0, "Cadena Volcanica"),
+        ]
+
+    candidates = []
+    with open(csv_path, newline="", encoding="utf-8") as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            if row.get("acq_date") != target_date:
+                continue
+            if row.get("confidence") != "high":
+                continue
+            frp = float(row.get("frp", 0.0))
+            if frp < min_frp:
+                continue
+            lon = float(row["longitude"])
+            lat = float(row["latitude"])
+            region = row.get("region_nombre", "Guatemala")
+            candidates.append((lon, lat, frp, region))
+
+    candidates.sort(key=lambda item: item[2], reverse=True)
+    selected: list[tuple[float, float, float, str]] = []
+    for lon, lat, frp, region in candidates:
+        if all(((lon - s[0]) ** 2 + (lat - s[1]) ** 2) ** 0.5 >= min_sep_deg for s in selected):
+            selected.append((lon, lat, frp, region))
+            if len(selected) >= max_points:
+                break
+    return selected
+
+
 def prepare_state_init(terrain: TerrainGrid) -> np.ndarray:
     state = np.zeros((terrain.rows, terrain.cols), dtype=np.int32)
-    # Focos de ignicion en Peten (RBM) y Cadena Volcanica / Altiplano
-    for lon, lat in [(-90.50, 17.20), (-91.10, 14.55)]:
+    csv_path = os.path.abspath(
+        os.path.join(os.path.dirname(__file__), "..", "data", "raw", "nasa_firms_viirs_guatemala_2024.csv")
+    )
+    hotspots = load_firms_hotspots(csv_path)
+    ignited = 0
+    for lon, lat, _frp, _region in hotspots:
         r, c = terrain.coord_to_indices(lon, lat)
         if terrain.mask_guatemala[r, c] and terrain.fuel[r, c] > 0.08:
             state[r, c] = STATE_BURNING
+            ignited += 1
+    if ignited == 0:
+        for lon, lat in [(-90.50, 17.20), (-91.10, 14.55)]:
+            r, c = terrain.coord_to_indices(lon, lat)
+            if terrain.mask_guatemala[r, c] and terrain.fuel[r, c] > 0.08:
+                state[r, c] = STATE_BURNING
     return state
 
 
@@ -216,23 +267,61 @@ def run_gpu_benchmarks(
         })
         print(f"   -> {mc_runs} replicas completadas en {mc_total_s:.2f} s ({mc_total_s/mc_runs*1e3:.1f} ms/replica)")
 
-        # Guardar mapa probabilistico de riesgo
+        # Guardar mapa probabilistico de riesgo (Nacional + Zooms Tacticos)
         os.makedirs(os.path.dirname(os.path.abspath(out_fig)), exist_ok=True)
-        fig, ax = plt.subplots(figsize=(10, 9), dpi=160, facecolor="#F8FAFC")
+        fig = plt.figure(figsize=(14, 9), dpi=160, facecolor="#F8FAFC")
+        gs = fig.add_gridspec(2, 2, width_ratios=[1.35, 1.0], wspace=0.22, hspace=0.26)
+        ax_nat = fig.add_subplot(gs[:, 0])
+        ax_peten = fig.add_subplot(gs[0, 1])
+        ax_south = fig.add_subplot(gs[1, 1])
+
         extent = [terrain.LON_MIN, terrain.LON_MAX, terrain.LAT_MIN, terrain.LAT_MAX]
         topo = np.copy(terrain.elevation)
         topo[~terrain.mask_guatemala] = np.nan
-        ax.imshow(topo, extent=extent, origin="upper", cmap="terrain", alpha=0.65)
         prob_disp = np.where(prob_map > 1.0, prob_map, np.nan)
-        im_p = ax.imshow(prob_disp, extent=extent, origin="upper", cmap="hot_r", vmin=0, vmax=100, alpha=0.85)
         border = terrain.border_coords
-        ax.plot([p[0] for p in border], [p[1] for p in border], color="#0F172A", linewidth=1.6)
-        cbar = plt.colorbar(im_p, ax=ax, fraction=0.036, pad=0.03)
+        bx = [p[0] for p in border]
+        by = [p[1] for p in border]
+
+        ha_per_cell = (terrain.cell_size / 100.0) ** 2
+        n_focos = int(np.sum(state_init == STATE_BURNING))
+        expected_ha = float(np.sum(prob_map / 100.0) * ha_per_cell)
+
+        im_p = None
+        for ax in (ax_nat, ax_peten, ax_south):
+            ax.imshow(topo, extent=extent, origin="upper", cmap="terrain", alpha=0.65)
+            im_p = ax.imshow(prob_disp, extent=extent, origin="upper", cmap="hot_r", vmin=0, vmax=100, alpha=0.88)
+            ax.plot(bx, by, color="#0F172A", linewidth=1.4)
+            ax.set_aspect("equal")
+
+        ax_nat.set_title(
+            f"Guatemala Nacional ({terrain.rows}x{terrain.cols}, dx={terrain.cell_size:.0f} m)\n"
+            f"{n_focos} focos FIRMS 2024-04-18 | Riesgo Esperado: {expected_ha:,.0f} ha",
+            fontsize=10.5,
+            fontweight="bold",
+        )
+        ax_nat.set_xlabel("Longitud Oeste (WGS84)")
+        ax_nat.set_ylabel("Latitud Norte (WGS84)")
+
+        ax_peten.set_xlim(-91.2, -89.3)
+        ax_peten.set_ylim(16.5, 17.85)
+        ax_peten.set_title("Zoom Tactico: Peten / RBM", fontsize=10, fontweight="bold")
+        ax_peten.set_ylabel("Latitud Norte")
+
+        ax_south.set_xlim(-91.8, -89.2)
+        ax_south.set_ylim(14.1, 15.65)
+        ax_south.set_title("Zoom Tactico: Altiplano / Sierra de las Minas", fontsize=10, fontweight="bold")
+        ax_south.set_xlabel("Longitud Oeste")
+        ax_south.set_ylabel("Latitud Norte")
+
+        cbar = fig.colorbar(im_p, ax=[ax_nat, ax_peten, ax_south], fraction=0.025, pad=0.025)
         cbar.set_label("Probabilidad de Afectacion Monte Carlo (%)", fontsize=10)
-        ax.set_aspect("equal")
-        ax.set_title(f"YAXCHE: Mapa Probabilistico de Riesgo ({mc_runs} Replicas en {gpu_name})", fontsize=12, fontweight="bold")
-        ax.set_xlabel("Longitud Oeste (WGS84)")
-        ax.set_ylabel("Latitud Norte (WGS84)")
+        fig.suptitle(
+            f"YAXCHE: Mapa Probabilistico de Riesgo ({mc_runs} Replicas en {gpu_name})",
+            fontsize=13,
+            fontweight="bold",
+            y=0.98,
+        )
         plt.savefig(out_fig, bbox_inches="tight")
         plt.close()
         print(f"[OK] Mapa probabilistico guardado en: {out_fig}")

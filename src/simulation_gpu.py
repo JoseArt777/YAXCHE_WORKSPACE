@@ -120,7 +120,8 @@ void yaxche_fire_step(
             const float dir_y =  ((float)drs[k]) * inv_d;
             const float wind_dot = wind_u[nidx] * dir_x + wind_v[nidx] * dir_y;
 
-            float prob = 0.25f * f_target * expf(2.5f * dh_norm) * expf(0.12f * wind_dot);
+            const float scale_factor = fminf(1.0f, fmaxf(0.15f, 100.0f / cell_size));
+            float prob = (0.18f * scale_factor) * f_target * expf(2.5f * dh_norm) * expf(0.35f * wind_dot);
             prob = fminf(0.95f, fmaxf(0.0f, prob));
 
             if (rand_u01(seed, step_idx, r, c, k) < prob) {

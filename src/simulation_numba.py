@@ -49,7 +49,9 @@ def step_numba_parallel(
     """Ejecuta un paso temporal del automata celular en paralelo sobre filas (prange)."""
     rows, cols = state_in.shape
     c_slope = 2.5
-    c_wind = 0.12
+    c_wind = 0.35
+    scale_factor = min(1.0, max(0.15, 100.0 / cell_size))
+    p_base = 0.18 * scale_factor
     inv_sqrt2 = 0.7071067811865475
 
     # Vecindad de Moore: (dr, dc, dist_factor)
@@ -101,7 +103,7 @@ def step_numba_parallel(
                     dir_y = drs[k] * inv_d  # Eje Y invertido (fila 0 = norte)
                     wind_dot = wind_u[nr, nc] * dir_x + wind_v[nr, nc] * dir_y
 
-                    prob = 0.25 * f_target * math.exp(c_slope * dh_norm) * math.exp(c_wind * wind_dot)
+                    prob = p_base * f_target * math.exp(c_slope * dh_norm) * math.exp(c_wind * wind_dot)
                     if prob > 0.95:
                         prob = 0.95
                     elif prob < 0.0:

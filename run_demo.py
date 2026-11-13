@@ -4,6 +4,7 @@ YAXCHE - Script de Demostracion Estandar y Generacion de Reporte Cartografico
 Ejecutalo con: python3 run_demo.py
 """
 
+import csv
 import time
 import os
 from src.terrain import TerrainGrid
@@ -38,13 +39,33 @@ def main():
     print("3. Inicializando simulador...")
     sim = FireSimulation(terrain=terrain, wind=wind, step_duration_hours=1.0)
 
-    # Iniciar foco en Peten (Reserva de la Biosfera Maya: Lon -90.50, Lat 17.20)
-    # e ignicion secundaria en la Sierra Madre (Lon -91.10, Lat 14.55)
-    print("4. Iniciando focos de ignicion reales:")
-    print("   -> Foco 1: Reserva de la Biosfera Maya (Peten: 17.20°N, 90.50°W)")
-    print("   -> Foco 2: Cadena Volcanica / Sierra Madre (14.55°N, 91.10°W)")
-    sim.ignite_coord(lon=-89.0, lat=15.5)
-    sim.ignite_coord(lon=-91.10, lat=14.55)
+    firms_csv = "data/raw/nasa_firms_viirs_guatemala_2024.csv"
+    hotspots = []
+    if os.path.exists(firms_csv):
+        with open(firms_csv, newline="", encoding="utf-8") as f:
+            candidates = [
+                (float(r["longitude"]), float(r["latitude"]), float(r.get("frp", 0.0)), r.get("region_nombre", "Guatemala"))
+                for r in csv.DictReader(f)
+                if r.get("acq_date") == "2024-04-18" and r.get("confidence") == "high" and float(r.get("frp", 0.0)) >= 55.0
+            ]
+        candidates.sort(key=lambda item: item[2], reverse=True)
+        for lon, lat, frp, region in candidates:
+            if all(((lon - s[0]) ** 2 + (lat - s[1]) ** 2) ** 0.5 >= 0.18 for s in hotspots):
+                hotspots.append((lon, lat, frp, region))
+                if len(hotspots) >= 24:
+                    break
+    if not hotspots:
+        hotspots = [(-90.50, 17.20, 80.0, "Peten RBM"), (-91.10, 14.55, 75.0, "Cadena Volcanica")]
+
+    print(f"4. Iniciando {len(hotspots)} focos reales NASA FIRMS VIIRS (2024-04-18):")
+    ignited_count = 0
+    for lon, lat, frp, region in hotspots:
+        sim.ignite_coord(lon=lon, lat=lat)
+        ignited_count += 1
+        if ignited_count <= 5:
+            print(f"   -> {region}: ({lat:.2f} N, {lon:.2f} W) FRP={frp:.1f} MW")
+    if ignited_count > 5:
+        print(f"   -> ... y {ignited_count - 5} focos adicionales activos.")
 
     pasos = 48
     print(f"5. Ejecutando simulacion secuencial de {pasos} horas de propagacion...")

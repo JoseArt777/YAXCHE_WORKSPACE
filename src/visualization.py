@@ -180,15 +180,16 @@ def plot_scientific_fire_report(
     ax_stats = fig.add_axes([0.68, 0.08, 0.28, 0.39], facecolor="white")
     ax_stats.axis("off")
 
-    total_burned_ha = int(np.sum(sim.state == STATE_BURNED))
-    active_front_ha = int(np.sum(sim.state == STATE_BURNING))
+    ha_per_cell = (sim.terrain.cell_size / 100.0) ** 2
+    total_burned_ha = int(round(int(np.sum(sim.state == STATE_BURNED)) * ha_per_cell))
+    active_front_ha = int(round(int(np.sum(sim.state == STATE_BURNING)) * ha_per_cell))
     total_affected_ha = total_burned_ha + active_front_ha
     total_km2 = total_affected_ha / 100.0
 
     stats_text = (
         "BALANCE CUANTITATIVO DEL INCENDIO\n"
         "─────────────────────────────────────────────\n"
-        f"• Resolución espacial:   100 m x 100 m (1 ha/celda)\n"
+        f"• Resolución espacial:   {sim.terrain.cell_size:.0f} m x {sim.terrain.cell_size:.0f} m ({ha_per_cell:.2f} ha/celda)\n"
         f"• Tiempo transcurrido:   {sim.simulated_hours:.1f} horas ({sim.current_step} pasos)\n"
         f"• Área Total Afectada:   {total_affected_ha:,} hectáreas\n"
         f"• Extensión Territorial: {total_km2:.2f} km²\n"

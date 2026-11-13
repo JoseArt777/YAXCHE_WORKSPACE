@@ -80,7 +80,9 @@ class FireSimulation:
         """
         new_ignitions = []
         c_slope = 2.5
-        c_wind = 0.12
+        c_wind = 0.35
+        scale_factor = float(np.clip(100.0 / self.terrain.cell_size, 0.15, 1.0))
+        p_base = 0.18 * scale_factor
 
         # Recorrido de celdas ardiendo dentro de Guatemala
         for r in range(1, self.rows - 1):
@@ -111,8 +113,8 @@ class FireSimulation:
                             wind_dot = (w_u * dir_x + w_v * dir_y)
                             wind_factor = np.exp(c_wind * wind_dot)
 
-                            # Probabilidad estocastica de ignicion
-                            prob = 0.25 * fuel * slope_factor * wind_factor
+                            # Probabilidad estocastica de ignicion (Rothermel direccional)
+                            prob = p_base * fuel * slope_factor * wind_factor
                             prob = np.clip(prob, 0.0, 0.95)
 
                             if np.random.rand() < prob:
@@ -137,9 +139,10 @@ class FireSimulation:
         self.current_step += 1
         self.simulated_hours = next_time_hours
 
-        # Metricas estandar en Hectareas (1 celda = 1 hectarea)
-        burned_ha = int(np.sum(self.state == STATE_BURNED))
-        active_ha = int(np.sum(self.state == STATE_BURNING))
+        # Metricas estandar en Hectareas reales segun resolucion de la celda
+        ha_per_cell = (self.terrain.cell_size / 100.0) ** 2
+        burned_ha = int(round(int(np.sum(self.state == STATE_BURNED)) * ha_per_cell))
+        active_ha = int(round(int(np.sum(self.state == STATE_BURNING)) * ha_per_cell))
         total_affected_ha = burned_ha + active_ha
 
         return {
