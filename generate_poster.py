@@ -5,6 +5,7 @@ Produce un poster academico de nivel internacional en ultra alta resolucion (300
 para el I Taller de Computacion de Alto Rendimiento en CPU y GPU con Python.
 """
 
+import csv
 import os
 import sys
 import numpy as np
@@ -172,8 +173,11 @@ def create_professional_poster(output_path: str = "YAXCHE_POSTER.png"):
     ax_c2_main = fig.add_axes([0.335, 0.02, 0.345, 0.87], facecolor=C_CARD)
     add_card(ax_c2_main, "4. MAPA CARTOGRÁFICO DE PROPAGACIÓN EN GUATEMALA", C_CYAN, "Georreferenciación WGS84 / TOA")
 
-    # Cargar dataset real de Guatemala (o respaldo sintetico si no existe)
-    real_npz = os.path.join(os.path.dirname(__file__), "data", "processed", "guatemala_real.npz")
+    # Cargar dataset real de Guatemala (priorizando alta resolucion 2000x2000)
+    base_dir = os.path.dirname(__file__)
+    real_2000 = os.path.join(base_dir, "data", "processed", "guatemala_real_2000.npz")
+    real_450 = os.path.join(base_dir, "data", "processed", "guatemala_real.npz")
+    real_npz = real_2000 if os.path.exists(real_2000) else real_450
     if os.path.exists(real_npz):
         terrain = TerrainGrid.from_npz(real_npz)
         wind = WindField.from_npz(real_npz)
@@ -184,9 +188,26 @@ def create_professional_poster(output_path: str = "YAXCHE_POSTER.png"):
         wind = WindField.uniform(shape=(sim_size, sim_size), speed_ms=13.5, direction_degrees=45.0)
     sim = FireSimulation(terrain, wind)
 
-    # Ignicion doble: Reserva de la Biosfera Maya (Norte) y Cadena Volcanica / Altiplano (Sur)
-    sim.ignite_coord(-90.50, 17.20)
-    sim.ignite_coord(-91.10, 14.55)
+    # Ignicion real multi-foco desde NASA FIRMS VIIRS (2024-04-18)
+    firms_csv = os.path.join(base_dir, "data", "raw", "nasa_firms_viirs_guatemala_2024.csv")
+    hotspots = []
+    if os.path.exists(firms_csv):
+        with open(firms_csv, newline="", encoding="utf-8") as f:
+            candidates = [
+                (float(r["longitude"]), float(r["latitude"]), float(r.get("frp", 0.0)))
+                for r in csv.DictReader(f)
+                if r.get("acq_date") == "2024-04-18" and r.get("confidence") == "high" and float(r.get("frp", 0.0)) >= 55.0
+            ]
+        candidates.sort(key=lambda item: item[2], reverse=True)
+        for lon, lat, _frp in candidates:
+            if all(((lon - s[0]) ** 2 + (lat - s[1]) ** 2) ** 0.5 >= 0.18 for s in hotspots):
+                hotspots.append((lon, lat))
+                if len(hotspots) >= 24:
+                    break
+    if not hotspots:
+        hotspots = [(-90.50, 17.20), (-91.10, 14.55)]
+    for lon, lat in hotspots:
+        sim.ignite_coord(lon, lat)
     history = sim.run(steps=48)
 
     # Sub-eje embebido para el mapa principal georreferenciado
@@ -361,11 +382,15 @@ def create_professional_poster(output_path: str = "YAXCHE_POSTER.png"):
     # Sub-eje embebido: Gráfica comparativa real (48 pasos simulados)
     ax_bench = fig.add_axes([0.710, 0.360, 0.255, 0.21], facecolor="#091224")
 
-    categories = ["Guatemala Real\n(450×450 · 202k)", "Escala Nacional\n(4500×4500 · 20.25M)"]
-    t_numba_1t = [112.94, 5448.31]
-    t_numba_4t = [41.92,  2233.01]
-    t_gpu_e2e  = [2.90,   134.31]
-    t_gpu_kern = [0.98,   24.90]
+    categories = [
+        "Guatemala\n(450×450 · 202k)",
+        "Guatemala Real\n(2000×2000 · 4M)",
+        "Escala Nacional\n(4500×4500 · 20.25M)",
+    ]
+    t_numba_1t = [112.94, 1126.98, 5448.31]
+    t_numba_4t = [41.92,  435.76,  2233.01]
+    t_gpu_e2e  = [2.90,   19.97,   134.31]
+    t_gpu_kern = [0.98,   1.10,    24.90]
 
     x = np.arange(len(categories))
     width = 0.19
@@ -378,16 +403,18 @@ def create_professional_poster(output_path: str = "YAXCHE_POSTER.png"):
     ax_bench.set_yscale("log")
     ax_bench.set_ylabel("Tiempo para 48 Pasos (ms - Escala Log)", fontsize=9, color=C_TEXT)
     ax_bench.set_xticks(x)
-    ax_bench.set_xticklabels(categories, fontsize=9.0, color=C_TEXT)
+    ax_bench.set_xticklabels(categories, fontsize=8.5, color=C_TEXT)
     ax_bench.tick_params(colors=C_MUTED, labelsize=8.0)
     ax_bench.grid(True, which="both", linestyle="--", alpha=0.2, color=C_MUTED)
     ax_bench.legend(loc="upper left", fontsize=7.8, facecolor="#0F1A30", edgecolor=C_BORDER, labelcolor=C_TEXT)
     ax_bench.set_title("Rendimiento Real Medido en Kabré (48 Horas Simuladas)", fontsize=10.2, fontweight="bold", color=C_TEXT, pad=6)
 
     # Textos de speedup real medido
-    ax_bench.text(x[0] + 1.5*width, t_gpu_kern[0] * 1.3, "115x", ha="center", va="bottom", color="#38BDF8", fontsize=8.8, fontweight="heavy")
-    ax_bench.text(x[1] + 1.5*width, t_gpu_kern[1] * 1.3, "218.8x", ha="center", va="bottom", color="#38BDF8", fontsize=8.8, fontweight="heavy")
-    ax_bench.text(x[1] + 0.5*width, t_gpu_e2e[1] * 1.3,  "40.6x", ha="center", va="bottom", color="#0284C7", fontsize=8.5, fontweight="bold")
+    ax_bench.text(x[0] + 1.5*width, t_gpu_kern[0] * 1.3, "115x", ha="center", va="bottom", color="#38BDF8", fontsize=8.5, fontweight="heavy")
+    ax_bench.text(x[1] + 1.5*width, t_gpu_kern[1] * 1.3, "1,022x", ha="center", va="bottom", color="#38BDF8", fontsize=8.5, fontweight="heavy")
+    ax_bench.text(x[1] + 0.5*width, t_gpu_e2e[1] * 1.3,  "56.4x", ha="center", va="bottom", color="#0284C7", fontsize=8.2, fontweight="bold")
+    ax_bench.text(x[2] + 1.5*width, t_gpu_kern[2] * 1.3, "218.8x", ha="center", va="bottom", color="#38BDF8", fontsize=8.5, fontweight="heavy")
+    ax_bench.text(x[2] + 0.5*width, t_gpu_e2e[2] * 1.3,  "40.6x", ha="center", va="bottom", color="#0284C7", fontsize=8.2, fontweight="bold")
 
     # --- 3.3 Conclusiones, Impacto Estrategico y Hoja de Ruta ---
     ax_c3_3 = fig.add_axes([0.695, 0.02, 0.285, 0.30], facecolor=C_CARD)
@@ -395,13 +422,13 @@ def create_professional_poster(output_path: str = "YAXCHE_POSTER.png"):
 
     c3_3_txt = (
         "• Resultados Medidos en el Clúster Kabré (CeNAT):\n"
-        "  1. Validación Hidrológica y Topográfica Real: La ingesta de DEM satelital y viento histórico\n"
-        "     reproduce fielmente la orografía guatemalteca, deteniendo el frente ante el Lago de Atitlán.\n"
+        "  1. Escala Real Multi-Foco (2000×2000, dx=249 m): La ingesta de DEM satelital, viento histórico\n"
+        "     y 18 focos NASA FIRMS VIIRS (2024-04-18) proyecta 41,696 ha de riesgo esperado en 48 h.\n"
         "  2. Impacto de Memoria Coalescente (CUDA): Alinear threadIdx.x con columnas contiguas redujo\n"
-        "     el tiempo del kernel en 20.25M celdas de 46.27 ms (strided) a 24.90 ms (1.86x extra).\n"
-        "  3. Ensamble Monte Carlo Operativo en Tiempo Real: En NVIDIA L40S (46 GB VRAM), 200 réplicas\n"
-        "     estocásticas de 48 horas sobre Guatemala completa tomaron 1.03 segundos (5.2 ms/réplica),\n"
-        "     alcanzando 218.8x de speedup en kernel y 40.6x end-to-end frente a Numba CPU (1 hilo).\n\n"
+        "     el kernel en 2000×2000 de 4.26 ms (strided) a 1.10 ms (3.86x extra) y en 20.25M a 24.90 ms.\n"
+        "  3. Aceleración y Monte Carlo en Tiempo Real: En NVIDIA L40S (46 GB VRAM), el kernel alcanza\n"
+        "     1,022x de speedup en 2000×2000 (56.4x end-to-end) frente a Numba CPU (1 hilo), completando\n"
+        "     200 réplicas estocásticas de 48 h sobre Guatemala en 11.11 s (55.5 ms/réplica).\n\n"
         "• Impacto Operativo para Instituciones Nacionales (CONRED / INAB / CONAP):\n"
         "  - Mapas Probabilísticos de Riesgo: Cuantificación porcentual de amenaza por hectárea para\n"
         "    evacuación temprana y despliegue óptimo de brigadas y brechas cortafuego.\n"
