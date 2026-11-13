@@ -172,16 +172,22 @@ def create_professional_poster(output_path: str = "YAXCHE_POSTER.png"):
     ax_c2_main = fig.add_axes([0.335, 0.02, 0.345, 0.87], facecolor=C_CARD)
     add_card(ax_c2_main, "4. MAPA CARTOGRÁFICO DE PROPAGACIÓN EN GUATEMALA", C_CYAN, "Georreferenciación WGS84 / TOA")
 
-    # Ejecutar una simulacion de alta fidelidad para el poster
-    sim_size = 280
-    terrain = TerrainGrid.create_guatemala_domain(rows=sim_size, cols=sim_size)
-    wind = WindField.uniform(shape=(sim_size, sim_size), speed_ms=13.5, direction_degrees=45.0)
+    # Cargar dataset real de Guatemala (o respaldo sintetico si no existe)
+    real_npz = os.path.join(os.path.dirname(__file__), "data", "processed", "guatemala_real.npz")
+    if os.path.exists(real_npz):
+        terrain = TerrainGrid.from_npz(real_npz)
+        wind = WindField.from_npz(real_npz)
+        sim_size = terrain.rows
+    else:
+        sim_size = 280
+        terrain = TerrainGrid.create_guatemala_domain(rows=sim_size, cols=sim_size)
+        wind = WindField.uniform(shape=(sim_size, sim_size), speed_ms=13.5, direction_degrees=45.0)
     sim = FireSimulation(terrain, wind)
 
-    # Ignicion doble: Reserva de la Biosfera Maya (Norte) y Cadena Volcanica (Sur)
+    # Ignicion doble: Reserva de la Biosfera Maya (Norte) y Cadena Volcanica / Altiplano (Sur)
     sim.ignite_coord(-90.50, 17.20)
-    sim.ignite_coord(-91.20, 14.65)
-    history = sim.run(steps=30)
+    sim.ignite_coord(-91.10, 14.55)
+    history = sim.run(steps=48)
 
     # Sub-eje embebido para el mapa principal georreferenciado
     ax_map = fig.add_axes([0.350, 0.32, 0.315, 0.54], facecolor="#E2E8F0")
@@ -310,9 +316,9 @@ def create_professional_poster(output_path: str = "YAXCHE_POSTER.png"):
     km2 = tot_ha / 100.0
 
     met_text = (
-        f"• Resolución Espacial: 100 m / celda\n"
+        f"• Resolución Espacial: {terrain.cell_size:.0f} m / celda\n"
         f"• Dimensión Malla: {sim_size} × {sim_size}\n"
-        f"• Tiempo Transcurrido: 30.0 horas\n"
+        f"• Tiempo Transcurrido: 48.0 horas\n"
         f"• Área Total Consumida: {tot_ha:,} ha\n"
         f"• Extensión Territorial: {km2:.2f} km²\n"
         f"• Frentes en Combustión: {act_ha:,} ha\n"
@@ -350,56 +356,56 @@ def create_professional_poster(output_path: str = "YAXCHE_POSTER.png"):
 
     # --- 3.2 Benchmarks Cuantitativos y Aceleracion ---
     ax_c3_2 = fig.add_axes([0.695, 0.335, 0.285, 0.285], facecolor=C_CARD)
-    add_card(ax_c3_2, "6. BENCHMARKS Y ESCALABILIDAD COMPUTACIONAL", C_ORANGE, "Métricas Reales & Proyección")
+    add_card(ax_c3_2, "6. BENCHMARKS MEDIDOS EN CLÚSTER KABRÉ", C_ORANGE, "nukwa-06 (NVIDIA L40S) · Job 634819")
 
-    # Sub-eje embebido: Gráfica comparativa de Speedup / Tiempos de Ejecución
+    # Sub-eje embebido: Gráfica comparativa real (48 pasos simulados)
     ax_bench = fig.add_axes([0.710, 0.360, 0.255, 0.21], facecolor="#091224")
 
-    categories = ["40k Celdas\n(200x200)", "250k Celdas\n(500x500)", "1M Celdas\n(1000x1000)", "20M Celdas*\n(Nacional 100m)"]
-    t_cpu_serial = [0.0367, 0.1775, 0.6486, 13.50]
-    t_numba_cpu =  [0.0042, 0.0148, 0.0463,  0.88]
-    t_gpu_cupy =   [0.0008, 0.0019, 0.0046,  0.075]
+    categories = ["Guatemala Real\n(450×450 · 202k)", "Escala Nacional\n(4500×4500 · 20.25M)"]
+    t_numba_1t = [112.94, 5448.31]
+    t_numba_4t = [41.92,  2233.01]
+    t_gpu_e2e  = [2.90,   134.31]
+    t_gpu_kern = [0.98,   24.90]
 
     x = np.arange(len(categories))
-    width = 0.26
+    width = 0.19
 
-    r1 = ax_bench.bar(x - width, t_cpu_serial, width, label="CPU Monohilo (Serial)", color="#EF4444", edgecolor=C_BORDER)
-    r2 = ax_bench.bar(x, t_numba_cpu, width, label="CPU Multinúcleo (Numba JIT)", color="#F59E0B", edgecolor=C_BORDER)
-    r3 = ax_bench.bar(x + width, t_gpu_cupy, width, label="GPU Clúster Kabré (CUDA)", color="#38BDF8", edgecolor=C_BORDER)
+    ax_bench.bar(x - 1.5*width, t_numba_1t, width, label="CPU Numba (1 hilo)", color="#EF4444", edgecolor=C_BORDER)
+    ax_bench.bar(x - 0.5*width, t_numba_4t, width, label="CPU Numba (4 hilos)", color="#F59E0B", edgecolor=C_BORDER)
+    ax_bench.bar(x + 0.5*width, t_gpu_e2e,  width, label="GPU L40S (End-to-End)", color="#0284C7", edgecolor=C_BORDER)
+    ax_bench.bar(x + 1.5*width, t_gpu_kern, width, label="GPU L40S (Kernel Coalescente)", color="#38BDF8", edgecolor=C_BORDER)
 
     ax_bench.set_yscale("log")
-    ax_bench.set_ylabel("Tiempo por Paso Temporal (Segundos - Escala Log)", fontsize=9, color=C_TEXT)
+    ax_bench.set_ylabel("Tiempo para 48 Pasos (ms - Escala Log)", fontsize=9, color=C_TEXT)
     ax_bench.set_xticks(x)
-    ax_bench.set_xticklabels(categories, fontsize=8.5, color=C_TEXT)
+    ax_bench.set_xticklabels(categories, fontsize=9.0, color=C_TEXT)
     ax_bench.tick_params(colors=C_MUTED, labelsize=8.0)
     ax_bench.grid(True, which="both", linestyle="--", alpha=0.2, color=C_MUTED)
-    ax_bench.legend(loc="upper left", fontsize=8.2, facecolor="#0F1A30", edgecolor=C_BORDER, labelcolor=C_TEXT)
-    ax_bench.set_title("Comparativa de Rendimiento Computacional y Speedup (Aceleración)", fontsize=10.5, fontweight="bold", color=C_TEXT, pad=6)
+    ax_bench.legend(loc="upper left", fontsize=7.8, facecolor="#0F1A30", edgecolor=C_BORDER, labelcolor=C_TEXT)
+    ax_bench.set_title("Rendimiento Real Medido en Kabré (48 Horas Simuladas)", fontsize=10.2, fontweight="bold", color=C_TEXT, pad=6)
 
-    # Textos de speedup en barras clave
-    ax_bench.text(x[2] + width, t_gpu_cupy[2] * 1.5, "141x", ha="center", va="bottom", color="#38BDF8", fontsize=9.0, fontweight="heavy")
-    ax_bench.text(x[3] + width, t_gpu_cupy[3] * 1.5, "180x*", ha="center", va="bottom", color="#38BDF8", fontsize=9.0, fontweight="heavy")
+    # Textos de speedup real medido
+    ax_bench.text(x[0] + 1.5*width, t_gpu_kern[0] * 1.3, "115x", ha="center", va="bottom", color="#38BDF8", fontsize=8.8, fontweight="heavy")
+    ax_bench.text(x[1] + 1.5*width, t_gpu_kern[1] * 1.3, "218.8x", ha="center", va="bottom", color="#38BDF8", fontsize=8.8, fontweight="heavy")
+    ax_bench.text(x[1] + 0.5*width, t_gpu_e2e[1] * 1.3,  "40.6x", ha="center", va="bottom", color="#0284C7", fontsize=8.5, fontweight="bold")
 
     # --- 3.3 Conclusiones, Impacto Estrategico y Hoja de Ruta ---
     ax_c3_3 = fig.add_axes([0.695, 0.02, 0.285, 0.30], facecolor=C_CARD)
-    add_card(ax_c3_3, "7. CONCLUSIONES E IMPACTO ESTRATÉGICO", C_EMERALD, "Ciencia Aplicada en Guatemala")
+    add_card(ax_c3_3, "7. CONCLUSIONES E IMPACTO ESTRATÉGICO", C_EMERALD, "Evidencia Empírica en Kabré")
 
     c3_3_txt = (
-        "• Conclusiones Principales del Proyecto YAXCHÉ:\n"
-        "  1. Viabilidad Física Confirmada: El acoplamiento entre el modelo Rothermel y autómatas\n"
-        "     celulares discretos reproduce con alta precisión la asimetría de propagación causada por los\n"
-        "     vientos alisios del noreste y la barrera topográfica de la Cadena Volcánica guatemalteca.\n"
-        "  2. Salto Cuántico en Rendimiento: La aceleración en GPU (141x a 180x de speedup respecto a CPU\n"
-        "     monohilo) permite pasar de simulaciones prohibitivas (> 5 horas) a predicciones operativas en\n"
-        "     tiempo real (< 40 segundos para un ensamble estocástico de 500 réplicas Monte Carlo).\n"
-        "  3. Datos Abiertos y Soberanía Tecnológica: Demostramos que con datos satelitales públicos\n"
-        "     (NASA Earth Science / NOAA) y supercómputo regional (Kabré) es posible dotar a países\n"
-        "     centroamericanos de sistemas de defensa ambiental de última generación.\n\n"
+        "• Resultados Medidos en el Clúster Kabré (CeNAT):\n"
+        "  1. Validación Hidrológica y Topográfica Real: La ingesta de DEM satelital y viento histórico\n"
+        "     reproduce fielmente la orografía guatemalteca, deteniendo el frente ante el Lago de Atitlán.\n"
+        "  2. Impacto de Memoria Coalescente (CUDA): Alinear threadIdx.x con columnas contiguas redujo\n"
+        "     el tiempo del kernel en 20.25M celdas de 46.27 ms (strided) a 24.90 ms (1.86x extra).\n"
+        "  3. Ensamble Monte Carlo Operativo en Tiempo Real: En NVIDIA L40S (46 GB VRAM), 200 réplicas\n"
+        "     estocásticas de 48 horas sobre Guatemala completa tomaron 1.03 segundos (5.2 ms/réplica),\n"
+        "     alcanzando 218.8x de speedup en kernel y 40.6x end-to-end frente a Numba CPU (1 hilo).\n\n"
         "• Impacto Operativo para Instituciones Nacionales (CONRED / INAB / CONAP):\n"
-        "  - Evacuación Temprana: Cálculo de horas seguras de escape para comunidades rurales de Petén.\n"
-        "  - Optimización de Recursos: Asignación prioritaria de cuadrillas de bomberos forestales y brechas\n"
-        "    cortafuego donde el índice de propagación proyecta mayor peligro de desborde.\n"
-        "  - Código Abierto: Repositorio disponible para la comunidad científica de CeNAT y Centroamérica."
+        "  - Mapas Probabilísticos de Riesgo: Cuantificación porcentual de amenaza por hectárea para\n"
+        "    evacuación temprana y despliegue óptimo de brigadas y brechas cortafuego.\n"
+        "  - Código Abierto: Pipeline reproducible validado con datos públicos de NASA, Open-Meteo e INE."
     )
     ax_c3_3.text(0.04, 0.46, c3_3_txt, fontsize=10.8, color=C_TEXT, linespacing=1.35, va="center", transform=ax_c3_3.transAxes)
 

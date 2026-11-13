@@ -16,14 +16,15 @@ from src.simulation import STATE_BURNED, STATE_BURNING, STATE_UNBURNED
 @numba.njit(inline="always")
 def _rand_u01(seed: np.uint32, step: np.int32, r: np.int32, c: np.int32, k: np.int32) -> float:
     """Generador pseudoaleatorio stateless (hash SplitMix32) en [0, 1)."""
-    x = np.uint32(seed)
-    x ^= np.uint32(step) * np.uint32(0x9E3779B9)
-    x ^= np.uint32(r) * np.uint32(0x85EBCA6B)
-    x ^= np.uint32(c) * np.uint32(0xC2B2AE35)
-    x ^= np.uint32(k) * np.uint32(0x27D4EB2F)
-    x = (x ^ (x >> np.uint32(16))) * np.uint32(0x7FEB352D)
-    x = (x ^ (x >> np.uint32(15))) * np.uint32(0x846CA68B)
-    x = x ^ (x >> np.uint32(16))
+    mask32 = numba.uint64(0xFFFFFFFF)
+    x = numba.uint64(seed) & mask32
+    x = (x ^ ((numba.uint64(step) * numba.uint64(0x9E3779B9)) & mask32)) & mask32
+    x = (x ^ ((numba.uint64(r) * numba.uint64(0x85EBCA6B)) & mask32)) & mask32
+    x = (x ^ ((numba.uint64(c) * numba.uint64(0xC2B2AE35)) & mask32)) & mask32
+    x = (x ^ ((numba.uint64(k) * numba.uint64(0x27D4EB2F)) & mask32)) & mask32
+    x = ((x ^ (x >> numba.uint64(16))) * numba.uint64(0x7FEB352D)) & mask32
+    x = ((x ^ (x >> numba.uint64(15))) * numba.uint64(0x846CA68B)) & mask32
+    x = (x ^ (x >> numba.uint64(16))) & mask32
     return float(x) / 4294967296.0
 
 
