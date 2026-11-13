@@ -14,7 +14,7 @@ En lugar de trabajar sobre un mapa plano genérico, el territorio de Guatemala s
 
 - **Topografía y cuerpos de agua:** elevación real descargada de AWS Terrain Tiles (DEM); las pendientes ascendentes aceleran el avance y los lagos (Atitlán, Izabal, Petén Itzá) detienen el frente.
 - **Viento:** vectores `u, v` obtenidos de Open-Meteo (histórico o en vivo). El viento deforma el frente en dirección al flujo del aire en lugar de expandir círculos uniformes.
-- **Ignición inicial:** focos reales de alta confianza tomados de **NASA FIRMS (VIIRS)** (por ejemplo, los 18 focos activos del `2024-04-18` distribuidos entre Petén, Sierra de las Minas y la Cadena Volcánica).
+- **Ignición inicial:** focos reales de alta confianza tomados de **NASA FIRMS (VIIRS)**. Se utiliza el **`2024-04-18`** como caso de estudio histórico de temporada seca severa (18 focos activos entre Petén, Sierra de las Minas y la Cadena Volcánica), ya que en época lluviosa/post-lluvias como noviembre de 2026 el monitoreo satelital en vivo reporta 0 incendios activos en Guatemala.
 
 Como el viento nunca es exacto a 48 horas vista, el simulador ejecuta **200 réplicas Monte Carlo** perturbando dirección y velocidad en cada corrida para obtener un mapa de probabilidad de afectación por hectárea.
 
@@ -43,7 +43,7 @@ Todas las variantes (Numba CPU con 1, 2 y 4 hilos, y CUDA GPU coalescente/stride
 
 ## Sensibilidad con viento en vivo
 
-Para comprobar la respuesta del simulador ante cambios meteorológicos reales, se comparó el avance a 48 horas desde los mismos 18 focos usando el viento seco de abril de 2024 frente al viento en vivo consultado en Open-Meteo:
+Para comprobar la respuesta del simulador ante cambios meteorológicos reales, se comparó el avance a 48 horas desde los mismos 18 focos usando el viento seco de abril de 2024 frente al viento en vivo consultado en Open-Meteo (noviembre de 2026):
 
 ![Comparativa de pronóstico con viento histórico vs viento en vivo](results/comparativa_viento_vivo.png)
 
